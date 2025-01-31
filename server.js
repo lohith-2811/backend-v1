@@ -1010,12 +1010,32 @@ app.get('/feestatuscount', async (req, res) => {
 });
 
 
+// Function to send FCM notification
+const sendFCMNotification = (title) => {
+  const message = {
+    notification: {
+      title: 'Notification',
+      body: title, 
+    },
+    topic: 'all',
+  };
+
+  firebaseAdmin.messaging().send(message)
+    .then((response) => {
+      console.log('Successfully sent FCM notification:', response);
+    })
+    .catch((error) => {
+      console.error('Error sending FCM notification:', error);
+    });
+};
+
 // Notice Route
 app.post('/add-post', async (req, res) => {
   const { title, description } = req.body;
   const timestamp = moment().tz('Asia/Kolkata').format('YYYY-MM-DD HH:mm:ss');
 
   try {
+    // Add the post to Google Sheets
     const response = await sheets.spreadsheets.values.append({
       spreadsheetId: sheetId,
       range: 'Sheet1!A:C', // Adjust the range to A:C
@@ -1025,11 +1045,17 @@ app.post('/add-post', async (req, res) => {
       },
     });
 
+    // Send FCM notification with the post title
+    sendFCMNotification(title);
+
     res.status(200).send('Post added successfully');
   } catch (error) {
+    console.error('Error adding post:', error);
     res.status(500).send(`Error adding post: ${error}`);
   }
 });
+
+
 
 app.get('/get-posts', async (req, res) => {
   try {
